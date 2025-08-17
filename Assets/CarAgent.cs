@@ -1,3 +1,4 @@
+
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -29,37 +30,40 @@ public class CarAgent : Agent
     }
     public override void OnEpisodeBegin()
     {
-        var spawnPointTransforms = SpawnPoints.GetComponentsInChildren<Transform>();
-        // Randomly select a spawn point
-        int randomIndex = Random.Range(1, spawnPointTransforms.Length); // Start from 1 to skip the parent transform
+        var spawnPointTransforms = SpawnPoints.GetComponentsInChildren<Transform>().Where(t => t != SpawnPoints.transform).ToArray();
+        int randomIndex = Random.Range(0, spawnPointTransforms.Length); // No need to skip index
         Transform spawnPoint = spawnPointTransforms[randomIndex];
-        // Set the position of the car to the selected spawn point
-        transform.position = spawnPoint.position + new Vector3(0, 0.5f, 0); // Adjust height to avoid collision with ground
-        // Reset the rotation of the car to be randomly facing a direction
+        transform.position = spawnPoint.position + new Vector3(0, 0.5f, 0);
         transform.rotation = Quaternion.Euler(0, Random.Range(0f, 360f), 0);
 
-        // Randomly select a target spot
-        var targetSpotTransforms = ParkingSpots.GetComponentsInChildren<Transform>();
-        int targetIndex = Random.Range(1, targetSpotTransforms.Length); // Start from 1 to skip the parent transform
+        var targetSpotTransforms = ParkingSpots.GetComponentsInChildren<Transform>().Where(t => t != ParkingSpots.transform).ToArray();
+        int targetIndex = Random.Range(0, targetSpotTransforms.Length);
         Transform targetSpot = targetSpotTransforms[targetIndex];
-        // Set the target position
         TargetSpot.transform.position = targetSpot.position;
         TargetSpot.transform.rotation = targetSpot.rotation;
 
-        // Clear previous obstacle cars
-        foreach (var obstacle in obstacleCars)
+        while (obstacleCars.Count < targetSpotTransforms.Length - 1) // Leave one spot for the target
         {
-            Destroy(obstacle);
-        }
-        obstacleCars.Clear();
-        // Spawn new obstacle cars everywhere except the target spot
-        // After selecting targetIndex:
-        for (int i = 1; i < targetSpotTransforms.Length; i++)
-        {
-            if (i == targetIndex) continue; // Skip the target spot
-            Transform spot = targetSpotTransforms[i];
-            GameObject obstacleCar = Instantiate(ObstacleCarPrefab, spot.position, spot.rotation, ParkingSpots.transform);
+            GameObject obstacleCar = Instantiate(ObstacleCarPrefab, Vector3.one * 200, Quaternion.identity, ParkingSpots.transform);
             obstacleCars.Add(obstacleCar);
+        }
+
+        var availableSpots = targetSpotTransforms.Where(t => t.position != TargetSpot.transform.position).ToArray();
+        availableSpots = availableSpots.OrderBy(t => Random.value).ToArray(); // Shuffle available spots
+
+        for (int i = 0; i < obstacleCars.Count; i++)
+        {
+            if (i < availableSpots.Length)
+            {
+                obstacleCars[i].transform.position = availableSpots[i].position;
+                obstacleCars[i].transform.rotation = availableSpots[i].rotation;
+            }
+            else
+            {
+                Destroy(obstacleCars[i]);
+                obstacleCars.RemoveAt(i);
+                i--; // Adjust index after removal
+            }
         }
     }
     float distanceToTarget => Mathf.Min(Vector3.Distance(transform.position, TargetSpot.transform.position), 5f) / 5f; // Normalize distance to a value between 0 and 1
@@ -108,14 +112,14 @@ public class CarAgent : Agent
         controlInterface.HandBrake = output[2] == 1;
 
         AddReward(-0.01f * distanceToTarget); // Penalize for distance to target
-        if (distanceToTarget < 1f)
+        if (distanceToTarget < 0.1f)
         {
             AddReward(10f); // Reward for reaching the target
             Debug.Log("Reached target, ending episode.");
             EndEpisode();
         }
         // Temporarily DIsabled, First Learn Path Following, THen Parking
-        if (false && controlInterface.HandBrake && distanceToTarget < 1f)
+        if (false && controlInterface.HandBrake && distanceToTarget < 0.1f)
         {
             float finalReward = Mathf.Pow(1 - Mathf.Abs(angleToTarget), 4) + (1 - distanceToTarget); // Combine rewards, emphasizing alignment
             finalReward *= 15f; // Scale the reward
@@ -170,3 +174,4 @@ public class CarAgent : Agent
         }
     }
 }
+
