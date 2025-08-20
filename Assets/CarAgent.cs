@@ -1,12 +1,10 @@
-
-using System.Collections;
 using System.Collections.Generic;
-using UnityEngine;
-using Unity.MLAgents;
-using Unity.MLAgents.Sensors;
-using Unity.MLAgents.Actuators;
-using Unity.Entities;
 using System.Linq;
+using NUnit.Framework;
+using Unity.MLAgents;
+using Unity.MLAgents.Actuators;
+using Unity.MLAgents.Sensors;
+using UnityEngine;
 
 public class CarAgent : Agent
 {
@@ -15,68 +13,148 @@ public class CarAgent : Agent
     public GameObject TargetSpot;
     public GameObject ParkingSpots;
     public GameObject ObstacleCarPrefab;
+    public GameObject TargetGoal;
 
-    List<GameObject> obstacleCars = new List<GameObject>();
-    // Start is called before the first frame update
+    private PrometeoCarController carController;
+    private Rigidbody rb;
+    private List<GameObject> obstacleCars = new List<GameObject>();
+
+    private float lastDistance;
+
     void Start()
     {
         controlInterface = GetComponent<ControlInterface>();
-    }
-
-    // Update is called once per frame
-    void Update()
-    {
-
-    }
-    public override void OnEpisodeBegin()
-    {
-        var spawnPointTransforms = SpawnPoints.GetComponentsInChildren<Transform>().Where(t => t != SpawnPoints.transform).ToArray();
-        int randomIndex = Random.Range(0, spawnPointTransforms.Length); // No need to skip index
-        Transform spawnPoint = spawnPointTransforms[randomIndex];
-        transform.position = spawnPoint.position + new Vector3(0, 0.5f, 0);
-        transform.rotation = Quaternion.Euler(0, Random.Range(0f, 360f), 0);
-
-        var targetSpotTransforms = ParkingSpots.GetComponentsInChildren<Transform>().Where(t => t != ParkingSpots.transform).ToArray();
-        int targetIndex = Random.Range(0, targetSpotTransforms.Length);
-        Transform targetSpot = targetSpotTransforms[targetIndex];
-        TargetSpot.transform.position = targetSpot.position;
-        TargetSpot.transform.rotation = targetSpot.rotation;
-
-        while (obstacleCars.Count < targetSpotTransforms.Length - 1) // Leave one spot for the target
+        carController = GetComponent<PrometeoCarController>();
+        rb = GetComponent<Rigidbody>();
+        int maxObstacles = (ParkingSpots.GetComponentsInChildren<Transform>().Length - 1) / 2;
+        for (int i = 0; i < maxObstacles; i++)
         {
-            GameObject obstacleCar = Instantiate(ObstacleCarPrefab, Vector3.one * 200, Quaternion.identity, ParkingSpots.transform);
+            GameObject obstacleCar = Instantiate(ObstacleCarPrefab, Vector3.one * 500, Quaternion.identity, ParkingSpots.transform);
             obstacleCars.Add(obstacleCar);
         }
-
-        var availableSpots = targetSpotTransforms.Where(t => t.position != TargetSpot.transform.position).ToArray();
-        availableSpots = availableSpots.OrderBy(t => Random.value).ToArray(); // Shuffle available spots
-
-        for (int i = 0; i < obstacleCars.Count; i++)
-        {
-            if (i < availableSpots.Length)
-            {
-                obstacleCars[i].transform.position = availableSpots[i].position;
-                obstacleCars[i].transform.rotation = availableSpots[i].rotation;
-            }
-            else
-            {
-                Destroy(obstacleCars[i]);
-                obstacleCars.RemoveAt(i);
-                i--; // Adjust index after removal
-            }
-        }
+        lastDistance = Vector3.Distance(transform.position, TargetSpot.transform.position);
     }
-    float distanceToTarget => Mathf.Min(Vector3.Distance(transform.position, TargetSpot.transform.position), 5f) / 5f; // Normalize distance to a value between 0 and 1
-    float angleToTarget => Vector3.Angle(transform.forward, TargetSpot.transform.forward) / 180f; // Normalize angle to a value between 0 and 1
+
+    public override void OnEpisodeBegin()
+    {
+        MaxStep = 20000; // End episode after 10000 steps
+        controlInterface.Gas = false;
+        controlInterface.Brake = false;
+        controlInterface.Left = false;
+        controlInterface.Right = false;
+        controlInterface.HandBrake = false;
+        rb.linearVelocity = Vector3.zero;
+        rb.angularVelocity = Vector3.zero;
+
+        var spawnPointTransforms = SpawnPoints.GetComponentsInChildren<Transform>().Where(t => t != SpawnPoints.transform).ToArray();
+        int randomIndex = Random.Range(0, spawnPointTransforms.Length);
+        Transform spawnPoint = spawnPointTransforms[randomIndex];
+        transform.SetPositionAndRotation(spawnPoint.position + new Vector3(0, 0.5f, 0), Quaternion.Euler(0, Random.Range(0f, 360f), 0));
+
+
+        ResetTarget();
+        lastDistance = Vector3.Distance(transform.position, TargetGoal.transform.position);
+
+        //float distanceThreshold = 5f;
+        //var targetSpot = ParkingSpots.GetComponentsInChildren<ParkingSpot>();
+        //var availableSpots = targetSpot
+        //    .Where(t => Vector3.Distance(t.transform.position, TargetSpot.transform.position) > distanceThreshold)
+        //    .OrderBy(t => Random.value)
+        //    .ToArray();
+        //for (int i = 0; i < obstacleCars.Count; i++)
+        //{
+        //    if (i < availableSpots.Length)
+        //    {
+        //        Transform obstacleSpot = availableSpots[i].transform;
+        //        obstacleCars[i].SetActive(true);
+        //        obstacleCars[i].transform.SetPositionAndRotation(obstacleSpot.position, obstacleSpot.rotation);
+        //    }
+        //    else
+        //    {
+        //        obstacleCars[i].SetActive(false);
+        //    }
+        //}
+    }
+
+    void ResetTarget()
+    {
+        var targetSpotTransforms = ParkingSpots.GetComponentsInChildren<ParkingSpot>();
+        //Transform selectedTargetSpot = targetSpotTransforms[Random.Range(0, targetSpotTransforms.Length)].transform;
+        Transform selectedTargetSpot = targetSpotTransforms[2].transform;
+        TargetSpot.transform.SetPositionAndRotation(selectedTargetSpot.position, selectedTargetSpot.rotation);
+    }
+    Vector3 directionToTarget => (TargetGoal.transform.position - transform.position).normalized;
+    float distanceToTarget => Vector3.Distance(transform.position, TargetGoal.transform.position);
+    float angleToTarget => Vector3.SignedAngle(transform.forward, directionToTarget, Vector3.up);
+
     public override void CollectObservations(VectorSensor sensor)
     {
-        sensor.AddObservation(distanceToTarget);
-        sensor.AddObservation(angleToTarget);
+        sensor.AddObservation(distanceToTarget / 140);
+        sensor.AddObservation(angleToTarget / 180f);
+        sensor.AddObservation(rb.linearVelocity.magnitude / 20f);
+        sensor.AddObservation(Vector3.Dot(rb.linearVelocity.normalized, transform.forward));
+        sensor.AddObservation(rb.angularVelocity.y / 10f); // normalize
+
     }
+
     public override void OnActionReceived(ActionBuffers actions)
     {
-        var output = actions.DiscreteActions;
+        SetInputs(actions);
+        // --- Reward 1: Distance progress (difference based) ---
+        float distanceDelta = lastDistance - distanceToTarget;
+        AddReward(distanceDelta * 0.1f); // reward for moving closer
+        lastDistance = distanceToTarget;
 
+        // --- Reward 2: Heading alignment ---
+        float alignment = Vector3.Dot(transform.forward, directionToTarget);
+        AddReward(alignment * 0.05f * Time.fixedDeltaTime);
+
+        // --- Reward 3: Velocity alignment ---
+        if (rb.linearVelocity.magnitude > 0.1f)
+        {
+            float velocityAlignment = Vector3.Dot(rb.linearVelocity.normalized, transform.forward);
+            AddReward(velocityAlignment * 0.002f * Time.fixedDeltaTime);
+        }
+
+        float angularVelPenalty = Mathf.Clamp01(Mathf.Abs(rb.angularVelocity.y) / 5f);
+        AddReward(-angularVelPenalty * 0.005f);
+
+        // --- Penalty 2: Step penalty (encourages efficiency) ---
+        AddReward(-0.002f);
+    }
+
+    private void OnTriggerEnter(Collider other)
+    {
+        if (other.CompareTag("Target"))
+        {
+
+            float alignment = Vector3.Dot(transform.forward, directionToTarget);
+            float alignmentBonus = alignment * 5f;
+            Debug.Log($"Target reached with alignment bonus: {alignmentBonus}");
+            SetReward(10f + alignmentBonus);
+            EndEpisode();
+        }
+    }
+
+    private void OnCollisionStay(Collision collision)
+    {
+        if (collision.gameObject.CompareTag("Obstacle"))
+        {
+            Debug.Log("Collision with obstacle, ending episode.");
+            SetReward(-2f);
+            EndEpisode();
+        }
+        else if (collision.gameObject.CompareTag("Curb"))
+        {
+            Debug.Log("Collision with curb, ending episode.");
+            SetReward(-0.5f);
+            EndEpisode();
+        } 
+    }
+
+    void SetInputs(ActionBuffers actions)
+    {
+        var output = actions.DiscreteActions;
         switch (output[0])
         {
             case 0: // Gas
@@ -110,33 +188,8 @@ public class CarAgent : Agent
         }
 
         controlInterface.HandBrake = output[2] == 1;
+    }
 
-        AddReward(-0.01f * distanceToTarget); // Penalize for distance to target
-        if (distanceToTarget < 0.1f)
-        {
-            AddReward(10f); // Reward for reaching the target
-            Debug.Log("Reached target, ending episode.");
-            EndEpisode();
-        }
-        // Temporarily DIsabled, First Learn Path Following, THen Parking
-        if (false && controlInterface.HandBrake && distanceToTarget < 0.1f)
-        {
-            float finalReward = Mathf.Pow(1 - Mathf.Abs(angleToTarget), 4) + (1 - distanceToTarget); // Combine rewards, emphasizing alignment
-            finalReward *= 15f; // Scale the reward
-            Debug.Log($"Final Reward: {finalReward * 15}");
-            SetReward(finalReward);
-            EndEpisode();
-        }
-    }
-    private void OnCollisionEnter(Collision collision)
-    {
-        if (collision.gameObject.CompareTag("Obstacle"))
-        {
-            Debug.Log("Collision with obstacle, ending episode.");
-            SetReward(-1f); // Penalize for collision
-            EndEpisode();
-        }
-    }
     public override void Heuristic(in ActionBuffers actionsOut)
     {
         var output = actionsOut.DiscreteActions;
@@ -174,4 +227,3 @@ public class CarAgent : Agent
         }
     }
 }
-
