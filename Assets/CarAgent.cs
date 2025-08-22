@@ -26,7 +26,7 @@ public class CarAgent : Agent
         controlInterface = GetComponent<ControlInterface>();
         carController = GetComponent<PrometeoCarController>();
         rb = GetComponent<Rigidbody>();
-        int maxObstacles = (ParkingSpots.GetComponentsInChildren<Transform>().Length - 1) / 2;
+        int maxObstacles = (ParkingSpots.GetComponentsInChildren<Transform>().Length - 1) - 10;
         for (int i = 0; i < maxObstacles; i++)
         {
             GameObject obstacleCar = Instantiate(ObstacleCarPrefab, Vector3.one * 500, Quaternion.identity, ParkingSpots.transform);
@@ -55,32 +55,36 @@ public class CarAgent : Agent
         ResetTarget();
         lastDistance = Vector3.Distance(transform.position, TargetGoal.transform.position);
 
-        //float distanceThreshold = 5f;
-        //var targetSpot = ParkingSpots.GetComponentsInChildren<ParkingSpot>();
-        //var availableSpots = targetSpot
-        //    .Where(t => Vector3.Distance(t.transform.position, TargetSpot.transform.position) > distanceThreshold)
-        //    .OrderBy(t => Random.value)
-        //    .ToArray();
-        //for (int i = 0; i < obstacleCars.Count; i++)
-        //{
-        //    if (i < availableSpots.Length)
-        //    {
-        //        Transform obstacleSpot = availableSpots[i].transform;
-        //        obstacleCars[i].SetActive(true);
-        //        obstacleCars[i].transform.SetPositionAndRotation(obstacleSpot.position, obstacleSpot.rotation);
-        //    }
-        //    else
-        //    {
-        //        obstacleCars[i].SetActive(false);
-        //    }
-        //}
+        ResetObstacles();
+
+    }
+
+    private void ResetObstacles()
+    {
+        var targetSpot = ParkingSpots.GetComponentsInChildren<ParkingSpot>();
+        var availableSpots = targetSpot
+            .Where(t => t.transform.position != TargetSpot.transform.position && Vector3.Distance(t.transform.position,TargetSpot.transform.position) > 2f)
+            .OrderBy(t => Random.value)
+            .ToArray();
+        for (int i = 0; i < obstacleCars.Count; i++)
+        {
+            if (i < availableSpots.Length)
+            {
+                Transform obstacleSpot = availableSpots[i].transform;
+                obstacleCars[i].SetActive(true);
+                obstacleCars[i].transform.SetPositionAndRotation(obstacleSpot.position, obstacleSpot.rotation);
+            }
+            else
+            {
+                obstacleCars[i].SetActive(false);
+            }
+        }
     }
 
     void ResetTarget()
     {
         var targetSpotTransforms = ParkingSpots.GetComponentsInChildren<ParkingSpot>();
-        //Transform selectedTargetSpot = targetSpotTransforms[Random.Range(0, targetSpotTransforms.Length)].transform;
-        Transform selectedTargetSpot = targetSpotTransforms[2].transform;
+        Transform selectedTargetSpot = targetSpotTransforms[Random.Range(0, targetSpotTransforms.Length)].transform;
         TargetSpot.transform.SetPositionAndRotation(selectedTargetSpot.position, selectedTargetSpot.rotation);
     }
     Vector3 directionToTarget => (TargetGoal.transform.position - transform.position).normalized;
@@ -102,12 +106,12 @@ public class CarAgent : Agent
         SetInputs(actions);
         // --- Reward 1: Distance progress (difference based) ---
         float distanceDelta = lastDistance - distanceToTarget;
-        AddReward(distanceDelta * 0.1f); // reward for moving closer
+        AddReward(distanceDelta * 0.05f); // reward for moving closer
         lastDistance = distanceToTarget;
 
         // --- Reward 2: Heading alignment ---
         float alignment = Vector3.Dot(transform.forward, directionToTarget);
-        AddReward(alignment * 0.05f * Time.fixedDeltaTime);
+        AddReward(alignment * 0.1f * Time.fixedDeltaTime);
 
         // --- Reward 3: Velocity alignment ---
         if (rb.linearVelocity.magnitude > 0.1f)
@@ -120,28 +124,40 @@ public class CarAgent : Agent
         AddReward(-angularVelPenalty * 0.005f);
 
         // --- Penalty 2: Step penalty (encourages efficiency) ---
-        AddReward(-0.002f);
+        AddReward(-0.001f);
     }
 
     private void OnTriggerEnter(Collider other)
     {
-        if (other.CompareTag("Target"))
+        if (other.gameObject == TargetGoal)
         {
-
             float alignment = Vector3.Dot(transform.forward, directionToTarget);
-            float alignmentBonus = alignment * 5f;
-            Debug.Log($"Target reached with alignment bonus: {alignmentBonus}");
-            SetReward(10f + alignmentBonus);
-            EndEpisode();
+            float angleToTarget = Vector3.SignedAngle(transform.forward, directionToTarget, Vector3.up);
+            float alignmentBonus = alignment * 10f;
+            float misalignmentPenalty = Mathf.Max(0, 1 - alignment) * 5f;
+
+            // Aligned with car properties
+            if (alignment > 0.98f && carController.carSpeed < 0.3f && Mathf.Abs(rb.angularVelocity.y) < 0.05f)
+            {
+                TargetSpot.GetComponent<Renderer>().material.color = Color.green;
+                Debug.Log($"Target reached with alignment bonus: {alignmentBonus}, Angle: {angleToTarget:F2}, Speed: {carController.carSpeed:F2}, AngularVel: {rb.angularVelocity.y:F2}");
+                SetReward(10f + alignmentBonus - misalignmentPenalty);
+                EndEpisode();
+            }
+            else
+            {
+                Debug.LogWarning($"Misaligned or moving: Alignment: {alignment:F2}, Angle: {angleToTarget:F2}, Speed: {carController.carSpeed:F2}, AngularVel: {rb.angularVelocity.y:F2}, Penalty: {misalignmentPenalty:F2}");
+                SetReward(10f + alignmentBonus - misalignmentPenalty);
+                EndEpisode();
+            }
         }
     }
-
-    private void OnCollisionStay(Collision collision)
+    private void OnCollisionEnter(Collision collision)
     {
         if (collision.gameObject.CompareTag("Obstacle"))
         {
             Debug.Log("Collision with obstacle, ending episode.");
-            SetReward(-2f);
+            SetReward(-3f);
             EndEpisode();
         }
         else if (collision.gameObject.CompareTag("Curb"))
@@ -149,7 +165,7 @@ public class CarAgent : Agent
             Debug.Log("Collision with curb, ending episode.");
             SetReward(-0.5f);
             EndEpisode();
-        } 
+        }
     }
 
     void SetInputs(ActionBuffers actions)

@@ -5,6 +5,9 @@ TagManager:
   serializedVersion: 3
   tags:
   - Obstacle
+  - Curb
+  - Target
+  - Body
   layers:
   - Default
   - TransparentFX
