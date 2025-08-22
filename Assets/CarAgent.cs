@@ -141,7 +141,7 @@ public class CarAgent : Agent
             {
                 TargetSpot.GetComponent<Renderer>().material.color = Color.green;
                 Debug.Log($"Target reached with alignment bonus: {alignmentBonus}, Angle: {angleToTarget:F2}, Speed: {carController.carSpeed:F2}, AngularVel: {rb.angularVelocity.y:F2}");
-                SetReward(10f + alignmentBonus - misalignmentPenalty);
+                SetReward(30f + alignmentBonus - misalignmentPenalty);
                 EndEpisode();
             }
             else
@@ -157,7 +157,7 @@ public class CarAgent : Agent
         if (collision.gameObject.CompareTag("Obstacle"))
         {
             Debug.Log("Collision with obstacle, ending episode.");
-            SetReward(-3f);
+            SetReward(-4f);
             EndEpisode();
         }
         else if (collision.gameObject.CompareTag("Curb"))
