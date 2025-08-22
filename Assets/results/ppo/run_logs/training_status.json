@@ -1,0 +1,65 @@
+{
+    "CarBehavior": {
+        "checkpoints": [
+            {
+                "steps": 5000099,
+                "file_path": "results\\ppo\\CarBehavior\\CarBehavior-5000099.onnx",
+                "reward": null,
+                "creation_time": 1755633879.802932,
+                "auxillary_file_paths": [
+                    "results\\ppo\\CarBehavior\\CarBehavior-5000099.pt"
+                ]
+            },
+            {
+                "steps": 5000099,
+                "file_path": "results\\ppo\\CarBehavior\\CarBehavior-5000099.onnx",
+                "reward": null,
+                "creation_time": 1755633966.7232232,
+                "auxillary_file_paths": [
+                    "results\\ppo\\CarBehavior\\CarBehavior-5000099.pt"
+                ]
+            },
+            {
+                "steps": 5000099,
+                "file_path": "results\\ppo\\CarBehavior\\CarBehavior-5000099.onnx",
+                "reward": null,
+                "creation_time": 1755634151.9670215,
+                "auxillary_file_paths": [
+                    "results\\ppo\\CarBehavior\\CarBehavior-5000099.pt"
+                ]
+            },
+            {
+                "steps": 5000099,
+                "file_path": "results\\ppo\\CarBehavior\\CarBehavior-5000099.onnx",
+                "reward": null,
+                "creation_time": 1755634333.6371908,
+                "auxillary_file_paths": [
+                    "results\\ppo\\CarBehavior\\CarBehavior-5000099.pt"
+                ]
+            },
+            {
+                "steps": 5000099,
+                "file_path": "results\\ppo\\CarBehavior\\CarBehavior-5000099.onnx",
+                "reward": null,
+                "creation_time": 1755644821.6307042,
+                "auxillary_file_paths": [
+                    "results\\ppo\\CarBehavior\\CarBehavior-5000099.pt"
+                ]
+            }
+        ],
+        "final_checkpoint": {
+            "steps": 5000099,
+            "file_path": "results\\ppo\\CarBehavior.onnx",
+            "reward": null,
+            "creation_time": 1755644821.6307042,
+            "auxillary_file_paths": [
+                "results\\ppo\\CarBehavior\\CarBehavior-5000099.pt"
+            ]
+        }
+    },
+    "metadata": {
+        "stats_format_version": "0.3.0",
+        "mlagents_version": "1.1.0",
+        "torch_version": "2.5.1"
+    }
+}

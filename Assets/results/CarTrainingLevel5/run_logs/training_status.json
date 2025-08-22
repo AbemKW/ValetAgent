@@ -1,0 +1,65 @@
+{
+    "CarBehavior": {
+        "checkpoints": [
+            {
+                "steps": 3999949,
+                "file_path": "results\\CarTrainingLevel5\\CarBehavior\\CarBehavior-3999949.onnx",
+                "reward": null,
+                "creation_time": 1755586987.981465,
+                "auxillary_file_paths": [
+                    "results\\CarTrainingLevel5\\CarBehavior\\CarBehavior-3999949.pt"
+                ]
+            },
+            {
+                "steps": 4499940,
+                "file_path": "results\\CarTrainingLevel5\\CarBehavior\\CarBehavior-4499940.onnx",
+                "reward": 23.52927303314209,
+                "creation_time": 1755588429.8073792,
+                "auxillary_file_paths": [
+                    "results\\CarTrainingLevel5\\CarBehavior\\CarBehavior-4499940.pt"
+                ]
+            },
+            {
+                "steps": 4999899,
+                "file_path": "results\\CarTrainingLevel5\\CarBehavior\\CarBehavior-4999899.onnx",
+                "reward": 13.929734144892011,
+                "creation_time": 1755589877.6734052,
+                "auxillary_file_paths": [
+                    "results\\CarTrainingLevel5\\CarBehavior\\CarBehavior-4999899.pt"
+                ]
+            },
+            {
+                "steps": 5000027,
+                "file_path": "results\\CarTrainingLevel5\\CarBehavior\\CarBehavior-5000027.onnx",
+                "reward": 13.929734144892011,
+                "creation_time": 1755589877.90858,
+                "auxillary_file_paths": [
+                    "results\\CarTrainingLevel5\\CarBehavior\\CarBehavior-5000027.pt"
+                ]
+            },
+            {
+                "steps": 5000027,
+                "file_path": "results\\CarTrainingLevel5\\CarBehavior\\CarBehavior-5000027.onnx",
+                "reward": null,
+                "creation_time": 1755610536.7254999,
+                "auxillary_file_paths": [
+                    "results\\CarTrainingLevel5\\CarBehavior\\CarBehavior-5000027.pt"
+                ]
+            }
+        ],
+        "final_checkpoint": {
+            "steps": 5000027,
+            "file_path": "results\\CarTrainingLevel5\\CarBehavior.onnx",
+            "reward": null,
+            "creation_time": 1755610536.7254999,
+            "auxillary_file_paths": [
+                "results\\CarTrainingLevel5\\CarBehavior\\CarBehavior-5000027.pt"
+            ]
+        }
+    },
+    "metadata": {
+        "stats_format_version": "0.3.0",
+        "mlagents_version": "1.1.0",
+        "torch_version": "2.5.1"
+    }
+}
