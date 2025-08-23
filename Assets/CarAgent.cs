@@ -26,7 +26,7 @@ public class CarAgent : Agent
         controlInterface = GetComponent<ControlInterface>();
         carController = GetComponent<PrometeoCarController>();
         rb = GetComponent<Rigidbody>();
-        int maxObstacles = (ParkingSpots.GetComponentsInChildren<Transform>().Length - 1) - 10;
+        int maxObstacles = (ParkingSpots.GetComponentsInChildren<Transform>().Length - 1) - 15;
         for (int i = 0; i < maxObstacles; i++)
         {
             GameObject obstacleCar = Instantiate(ObstacleCarPrefab, Vector3.one * 500, Quaternion.identity, ParkingSpots.transform);
@@ -157,7 +157,7 @@ public class CarAgent : Agent
         if (collision.gameObject.CompareTag("Obstacle"))
         {
             Debug.Log("Collision with obstacle, ending episode.");
-            SetReward(-4f);
+            SetReward(-3f);
             EndEpisode();
         }
         else if (collision.gameObject.CompareTag("Curb"))
