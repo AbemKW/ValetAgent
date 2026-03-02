@@ -94,5 +94,5 @@ The simulation consists of the following key components:
 - PROMETEO Car Controller asset
 
 ## License
-This project is for educational and research purposes. See LICENSE for details.
+This project is for educational and research purposes.
 
